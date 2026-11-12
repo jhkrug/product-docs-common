@@ -47,6 +47,25 @@ antora:
 To include the extension but keep it off, set `enabled: false`. To turn it on
 for one build only, use `npx antora --extension image-dedup <playbook>`.
 
+## Order in the playbook
+
+List `image-dedup` after every extension that changes the output path or URL
+of images in `contentClassified`, for example `release-url-layout`. Antora
+runs the extensions in the order of the playbook. The extension copies the URL
+of the canonical image, so that URL must be final. If `image-dedup` runs
+first, `release-url-layout` stops the build, because a duplicate image has a
+URL but no output path.
+
+```yaml
+antora:
+  extensions:
+    - require: ./product-docs-common/extensions/release-url-layout/release-url-layout.js
+    # After release-url-layout, which moves the images that this extension links to.
+    - id: image-dedup
+      require: ./product-docs-common/extensions/image-dedup/image-dedup.js
+      enabled: true
+```
+
 ## Options
 
 | Option | Default | Description |
