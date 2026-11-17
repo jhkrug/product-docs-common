@@ -18,6 +18,11 @@ published images in a scope (see `scope`):
   to the canonical image, so pages that reference them link to the canonical
   copy. For example, `de/_images/install.png` is not published, and German
   pages show `en/_images/install.png`.
+* The URLs change after the content is classified, but the extension removes
+  the output path of the duplicates only before the site is published. Until
+  then, other extensions see every image. For example, the PDF assembler
+  (`@antora/pdf-extension`) uses only files with an output path, and it
+  embeds the image of each language module.
 * An image with different bytes is always kept. A localized screenshot (for
   example, a GUI with German text) is published in its own module. You do not
   have to change the content or the translation workflow.
@@ -53,8 +58,8 @@ List `image-dedup` after every extension that changes the output path or URL
 of images in `contentClassified`, for example `release-url-layout`. Antora
 runs the extensions in the order of the playbook. The extension copies the URL
 of the canonical image, so that URL must be final. If `image-dedup` runs
-first, `release-url-layout` stops the build, because a duplicate image has a
-URL but no output path.
+first, the duplicate images get a URL that is not final, and their links can
+break.
 
 ```yaml
 antora:
