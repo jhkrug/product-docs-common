@@ -5,9 +5,10 @@
 //
 // After the content is classified, images with the same bytes in the same
 // scope form a group. One file of the group (the canonical file) is
-// published. The other files are not written, and their URL (pub) is set to
-// the canonical file, so pages that reference them link to the canonical
-// copy. A localized image has different bytes, so it is always kept.
+// published. The URL (pub) of the other files is set to the canonical file,
+// so pages that reference them link to the canonical copy. Before the site
+// is published, their output (out) is removed, so they are not written. A
+// localized image has different bytes, so it is always kept.
 
 const crypto = require("node:crypto");
 
@@ -22,6 +23,14 @@ module.exports.register = function ({ config = {} }) {
       `image-dedup: scope must be one of ${SCOPES.join(", ")}, not '${scope}'`,
     );
   }
+
+  // The duplicates keep their out until the site is published, so that other
+  // extensions that write their own files (for example the PDF assembler,
+  // which uses only files with out) still find every image.
+  const duplicates = [];
+  this.once("beforePublish", () => {
+    for (const file of duplicates) delete file.out;
+  });
 
   this.once("contentClassified", ({ contentCatalog }) => {
     const images = contentCatalog
@@ -71,7 +80,7 @@ module.exports.register = function ({ config = {} }) {
       const canonical = group[0];
       for (const file of group.slice(1)) {
         file.pub = { ...canonical.pub };
-        delete file.out;
+        duplicates.push(file);
         count++;
         bytes += file.contents.length;
       }

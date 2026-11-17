@@ -1,8 +1,8 @@
 "use strict";
 
 // Run with: node --test extensions/image-dedup/*.test.cjs
-// Runs the contentClassified step of the extension with a stand-in content
-// catalog.
+// Runs the contentClassified and beforePublish steps of the extension with a
+// stand-in content catalog.
 
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
@@ -20,7 +20,8 @@ function image(component, version, module, relative, contents) {
   };
 }
 
-function run(files, config = {}, latest = {}) {
+// With publish: false, run stops after contentClassified.
+function run(files, config = {}, latest = {}, { publish = true } = {}) {
   const listeners = {};
   const messages = [];
   ext.register.call(
@@ -44,8 +45,18 @@ function run(files, config = {}, latest = {}) {
       findBy: ({ family }) => files.filter((f) => f.src.family === family),
     },
   });
+  if (publish) listeners.beforePublish?.();
   return messages;
 }
+
+test("a duplicate keeps its output until the site is published", () => {
+  // Other extensions, for example the PDF assembler, use only files with out.
+  const en = image("c", "v1", "en", "a.png", "same");
+  const de = image("c", "v1", "de", "a.png", "same");
+  run([de, en], {}, {}, { publish: false });
+  assert.ok(de.out, "German copy still has out after contentClassified");
+  assert.equal(de.pub.url, "/c/v1/en/_images/a.png");
+});
 
 test("a translated copy of an English image links to the English image", () => {
   const en = image("c", "v1", "en", "a.png", "same");
